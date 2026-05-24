@@ -1,0 +1,65 @@
+name: Claude Mention
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened]
+  pull_request:
+    types: [opened]
+
+jobs:
+  claude-response:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude')) ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.body, '@claude'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Project Setup
+        run: |
+          npm run setup
+          npm run dev:daemon
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          custom_instructions: |
+            This is UIGen — an AI-powered React component generator with live preview.
+            Tech stack: Next.js 15, React 19, TypeScript, Tailwind CSS v4, Prisma with SQLite, Anthropic Claude AI, Vercel AI SDK.
+            The project uses Node.js 18+. After setup, the app runs at localhost:3000.
+            Database is SQLite managed by Prisma. Run 'npx prisma studio' to inspect data.
+            Do NOT run 'npm audit fix' — dependencies are pinned intentionally.
+          allowed_tools: "Bash(npm:*),Bash(sqlite3:*),mcp__playwright__browser_snapshot,mcp__playwright__browser_click,..."
+          mcp_config: |
+            {
+              "mcpServers": {
+                "playwright": {
+                  "command": "npx",
+                  "args": [
+                    "@playwright/mcp@latest",
+                    "--allowed-origins",
+                    "localhost:3000;cdn.tailwindcss.com;esm.sh"
+                  ]
+                }
+              }
+            }

@@ -1,0 +1,48 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - main
+      - master
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Run Claude Code Review
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          direct_prompt: |
+            Please review this pull request for the UIGen project.
+
+            UIGen is an AI-powered React component generator with live preview.
+            Tech stack: Next.js 15, React 19, TypeScript, Tailwind CSS v4, Prisma with SQLite, Anthropic Claude AI, Vercel AI SDK.
+
+            Focus your review on:
+            1. **Correctness** — Logic errors, edge cases, broken functionality
+            2. **TypeScript** — Type safety, proper use of types/interfaces
+            3. **React best practices** — Hooks usage, component structure, performance
+            4. **Tailwind CSS v4** — Correct class usage and responsive design
+            5. **Prisma/Database** — Schema changes, query efficiency, migration issues
+            6. **Security** — API key exposure, input validation, auth checks
+            7. **Code quality** — Readability, duplication, naming conventions
+
+            Provide a concise, actionable review with specific suggestions.
+          allowed_tools: "Bash(npm:*),Bash(npx:*)"
